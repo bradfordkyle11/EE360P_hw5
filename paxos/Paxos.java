@@ -161,15 +161,19 @@ public class Paxos implements PaxosRMI, Runnable{
     public void run(){
       int seq = latest_seq;
       AgreementInstance ctx = instances.get (seq);
+
       while (!ctx.decided)
       {
         // Get next logical clock value.
         ctx.clock = (ctx.clock / peers.length + 1) * peers.length + me;
+
         // Prepare proposal.
         Request proposal = new Request (seq, ctx.clock);
+
         // Track proposals sent in these arrays.
         Caller callers[] = new Caller[peers.length];
         Thread calls[] = new Thread[peers.length];
+
         // Send each proposal in a new thread.
         for (int i=0; i<peers.length; i++)
         {
@@ -185,11 +189,13 @@ public class Paxos implements PaxosRMI, Runnable{
           call[i].join ();
           if (callers[i].retVal.accepted)
             okays++;
+
+          // Stop early if majority found.
           if (okays > peers.length / 2)
             break;
         }
 
-        // Go to round if no majority acceptance.
+        // Continue next round if no majority acceptance.
         if (okays <= peers.length / 2)
           continue;
 
@@ -199,14 +205,16 @@ public class Paxos implements PaxosRMI, Runnable{
         {
           if (caller.retVal == null || !caller.retVal.accepted)
             continue;
-          // Match the most recent of previously accepted proposals.
+
+          // Match just the most recent of previously accepted proposals.
           if (caller.retVal.lastAcceptClock > maxAcceptClock)
           {
             ctx.v = caller.retVal.lastAcceptV;
             maxAcceptClock = caller.retVal.lastAcceptClock;
           }
-
         }
+
+
       }
     }
 
