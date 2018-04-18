@@ -13,4 +13,16 @@ public class Request implements Serializable {
 
 
     // Your constructor and methods here
+
+
+    //Need PREPARE requests and ACCEPT requests
+
+    //PREPARE:
+    //  int n, unique number that is higher than any seen before
+    
+    //ACCEPT:
+    //  int n, unique number that is higher than any seen before
+    //  command v, either the command received from prepare_ok, or a command you choose yourself if no command received 
+
+    //uniqueness of n: use max_num_seen % num_paxos + paxos_id
 }
