@@ -9,23 +9,21 @@ import java.io.Serializable;
 public class Response implements Serializable {
     static final long serialVersionUID=2L;
     // your data here
+    // Need PREPARE_OK, PREPARE_REJECT, ACCEPT_OK, ACCEPT_REJECT
 
+    //PREPARE_OK/PREPARE_REJECT:
+    //  bool accept, true for accept, false for reject
+    //  int n, the proposal number from the PREPARE request
+    //  int n_a, the highest ACCEPT proposal ok'd
+    //  int v_a, the value corresponding to n_a
+    //  int done, the highest Done() value from the acceptor
+    
+    //ACCEPT_OK/ACCEPT_REJECT:
+    //  bool accept, true for accept, false for reject
+    //  int n, the proposal number of the ACCEPT request
+    //  int done, the highest Done() value from the acceptor
+    
 
     // Your constructor and methods here
 
-    // Need PREPARE_OK, PREPARE_REJECT, ACCEPT_OK, ACCEPT_REJECT
-
-    //PREPARE_OK:
-    //  int n, the proposal number from the PREPARE request
-    //  int n_a, the highest proposal accepted
-    //  int v_a, the value corresponding to n_a
-
-    //PREPARE_REJECT:
-    // ?
-
-    //ACCEPT_OK:
-    //  int n, the proposal number of the ACCEPT request
-
-    //ACCEPT_REJECT:
-    // ?
 }

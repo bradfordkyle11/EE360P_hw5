@@ -11,9 +11,7 @@ public class Request implements Serializable {
     static final long serialVersionUID=1L;
     // Your data here
 
-
     // Your constructor and methods here
-
 
     //Need PREPARE requests and ACCEPT requests
 
