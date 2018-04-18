@@ -9,6 +9,32 @@ import java.io.Serializable;
 public class Response implements Serializable {
     static final long serialVersionUID=2L;
     // your data here
+    public boolean accepted;
+    public int reqRespondingTo;
+    public int highestAccept;
+    public int done;
+    public int acceptorID;
+    public String command;
+
+    //all variables needed for PREPARE_OK response
+    public Response(boolean accepted, int acceptorID, int reqRespondingTo, int highestAccept, String command, int done)
+    {
+        this.accepted = accepted;
+        this.acceptorID = acceptorID;
+        this.reqRespondingTo = reqRespondingTo;
+        this.highestAccept = highestAccept;
+        this.command = command;
+        this.done = done;
+    }
+
+    public Response(boolean accepted, int acceptorID, int reqRespondingTo, int done)
+    {
+        this.accepted = accepted;
+        this.acceptorID = acceptorID;
+        this.reqRespondingTo = reqRespondingTo;
+        this.done = done;
+    }
+
     // Need PREPARE_OK, PREPARE_REJECT, ACCEPT_OK, ACCEPT_REJECT
 
     //PREPARE_OK/PREPARE_REJECT:

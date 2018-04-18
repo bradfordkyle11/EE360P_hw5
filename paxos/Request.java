@@ -10,8 +10,24 @@ import java.io.Serializable;
 public class Request implements Serializable {
     static final long serialVersionUID=1L;
     // Your data here
+    public int reqID; //must be unique and higher than any before
+    public String command;
 
     // Your constructor and methods here
+
+    //for prepare requests, you only need the reqID
+    public Request(int reqID)
+    {
+        this.reqID = reqID;
+        command = "";
+    }
+
+    //for accept requests, you need the reqID and the command you want accepted
+    public Request(int reqID, String command)
+    {
+        this.reqID = reqID;
+        this.command = command;
+    }
 
     //Need PREPARE requests and ACCEPT requests
 
