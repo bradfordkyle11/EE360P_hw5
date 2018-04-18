@@ -4,6 +4,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.Registry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.*;
 
 /**
  * This class is the main class you need to implement paxos instances.
@@ -24,15 +25,21 @@ public class Paxos implements PaxosRMI, Runnable{
     // Your data here
     int[] dones;
 
-    // Shared
-    HashMap<Integer,Integer> logicalClock;
-    // Proposer
-    HashMap<Integer,Object> v;
-    // Acceptor
-    HashMap<Integer,Integer> lastAcceptClock;
-    HashMap<Integer,Object> lastAcceptV;
-    // Learner
-    HashMap<Integer,Object> learnedV;
+    class AgreementInstance
+    {
+      // Shared
+      int logicalClock = 0;
+      // Proposer
+      Object v = null;
+      // Acceptor
+      int lastAcceptClock = -1;
+      Object lastAcceptV = null;
+      // Learner
+      Object learnedV = null;
+    }
+
+    HashMap<Integer, AgreementInstance> instances;
+
 
     /**
      * Call the constructor to create a Paxos peer.
@@ -52,11 +59,7 @@ public class Paxos implements PaxosRMI, Runnable{
         dones = new int[peers.length];
         for (int i=0; i<dones.length; i++)
           dones[i] = -1;
-        logicalClock = new HashMap<Integer,Integer> ();
-        v = new HashMap<Integer,Object> ();
-        lastAcceptClock = new HashMap<Integer,Integer> ();
-        lastAcceptV = new HashMap<Integer,Object> ();
-        learnedV = new HashMap<Integer,Object> ();
+        instances = new HashMap<Integer, AgreementInstance> ();
 
         // register peers, do not modify this part
         try{
