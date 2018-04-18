@@ -13,6 +13,8 @@ public class Request implements Serializable {
   public int seq;
     public int reqID; //must be unique and higher than any before
     public Object value;
+    public int me;
+    public int done;
 
     // Your constructor and methods here
 
@@ -29,6 +31,15 @@ public class Request implements Serializable {
       this.seq = seq;
       this.reqID = reqID;
       this.value = value;
+    }
+
+    // Decide request
+    public Request(int seq, Object value, int me, int done)
+    {
+      this.seq = seq;
+      this.value = value;
+      this.me = me;
+      this.done = done;
     }
 
     //Need PREPARE requests and ACCEPT requests

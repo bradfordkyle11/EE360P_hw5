@@ -28,11 +28,11 @@ public class Paxos implements PaxosRMI, Runnable{
     class AgreementInstance
     {
       // Shared
-      int clock = 0;
+      int reqID = 0;
       // Proposer
       Object v = null;
       // Acceptor
-      int lastAcceptClock = -1;
+      int lastAcceptReqID = -1;
       Object lastAcceptV = null;
       // Learner
       boolean decided = false;
@@ -157,71 +157,88 @@ public class Paxos implements PaxosRMI, Runnable{
       }
     }
 
+    boolean getMajority (String type, Request request, Caller[] callers, Thread[] calls)
+    {
+      // Send each request in a new thread.
+      for (int i=0; i<peers.length; i++)
+      {
+        callers[i] = new Caller (type, request, i);
+        calls[i] = new Thread (callers[i]);
+        calls[i].start ();
+      }
+
+      // Receive request responses, counting okays.
+      int okays = 0;
+      for (int i=0; i<peers.length; i++)
+      {
+        try
+        {
+          calls[i].join ();
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+        if (callers[i].retVal.accepted)
+          okays++;
+      }
+
+      // (If majority found)
+      return (okays > peers.length / 2);
+    }
+
     @Override
     public void run(){
       int seq = latest_seq;
-      AgreementInstance ctx = instances.get (seq);
+      AgreementInstance context = instances.get (seq);
 
-      while (!ctx.decided)
+      while (!context.decided)
       {
-        // Get next logical clock value.
-        ctx.clock = (ctx.clock / peers.length + 1) * peers.length + me;
+        // Get next logical reqID value.
+        context.reqID = (context.reqID / peers.length + 1) * peers.length + me;
 
         // Prepare proposal.
-        Request proposal = new Request (seq, ctx.clock);
+        Request proposal = new Request (seq, context.reqID);
 
         // Track proposals sent in these arrays.
         Caller callers[] = new Caller[peers.length];
         Thread calls[] = new Thread[peers.length];
 
-        // Send each proposal in a new thread.
-        for (int i=0; i<peers.length; i++)
-        {
-          callers[i] = new Caller ("Prepare", proposal, i);
-          calls[i] = new Thread (callers[i]);
-          calls[i].start ();
-        }
-
-        // Receive proposal responses, counting okays.
-        int okays = 0;
-        for (int i=0; i<peers.length; i++)
-        {
-          try
-          {
-            calls[i].join ();
-          }
-          catch (Exception e)
-          {
-            e.printStackTrace();
-          }
-          if (callers[i].retVal.accepted)
-            okays++;
-
-          // Stop early if majority found.
-          if (okays > peers.length / 2)
-            break;
-        }
-
         // Continue next round if no majority acceptance.
-        if (okays <= peers.length / 2)
+        if (!getMajority ("Prepare", proposal, callers, calls))
           continue;
 
         // Match the value of any old accepted proposals.
-        int maxAcceptClock = -1;
+        int maxAcceptReqID = -1;
         for (Caller caller : callers)
         {
           if (caller.retVal == null || !caller.retVal.accepted)
             continue;
 
           // Match just the most recent of previously accepted proposals.
-          if (caller.retVal.lastAcceptClock > maxAcceptClock)
+          if (caller.retVal.lastAcceptReqID > maxAcceptReqID)
           {
-            ctx.v = caller.retVal.lastAcceptV;
-            maxAcceptClock = caller.retVal.lastAcceptClock;
+            context.v = caller.retVal.lastAcceptV;
+            maxAcceptReqID = caller.retVal.lastAcceptReqID;
           }
+
+          // Update dones[] through piggy-backed data.
+          dones[caller.retVal.me] = caller.retVal.done;
         }
 
+        // Send Accept requests.
+        Request accept = new Request (seq, context.reqID, context.v);
+        if (!getMajority ("Accept", accept, callers, calls))
+          continue;
 
+        // Send decide messages.
+        Request decide = new Request (seq, context.v, me, dones[me]);
+        for (int i=0; i<peers.length; i++)
+        {
+          callers[i] = new Caller ("Decide", decide, i);
+          calls[i] = new Thread (callers[i]);
+          calls[i].start ();
+        }
       }
     }
 
