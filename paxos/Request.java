@@ -10,20 +10,23 @@ import java.io.Serializable;
 public class Request implements Serializable {
     static final long serialVersionUID=1L;
     // Your data here
+    public int seq;
     public int reqID; //must be unique and higher than any before
     public Object value;
 
     // Your constructor and methods here
 
     //for prepare requests, you only need the reqID
-    public Request(int reqID)
+    public Request(int seq, int reqID)
     {
+        this.seq = seq;
         this.reqID = reqID;
     }
 
     //for accept requests, you need the reqID and the value you want accepted
-    public Request(int reqID, Object value)
+    public Request(int seq, int reqID, Object value)
     {
+        this.seq = seq;
         this.reqID = reqID;
         this.value = value;
     }
@@ -32,10 +35,10 @@ public class Request implements Serializable {
 
     //PREPARE:
     //  int n, unique number that is higher than any seen before
-    
+
     //ACCEPT:
     //  int n, unique number that is higher than any seen before
-    //  value v, either the value received from prepare_ok, or a value you choose yourself if no value received 
+    //  value v, either the value received from prepare_ok, or a value you choose yourself if no value received
 
-    //uniqueness of n: use (max_num_seen / num_paxos + 1) * num_paxos + paxos_id 
+    //uniqueness of n: use (max_num_seen / num_paxos + 1) * num_paxos + paxos_id
 }
