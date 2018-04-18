@@ -12,4 +12,20 @@ public class Response implements Serializable {
 
 
     // Your constructor and methods here
+
+    // Need PREPARE_OK, PREPARE_REJECT, ACCEPT_OK, ACCEPT_REJECT
+
+    //PREPARE_OK:
+    //  int n, the proposal number from the PREPARE request
+    //  int n_a, the highest proposal accepted
+    //  int v_a, the value corresponding to n_a
+
+    //PREPARE_REJECT:
+    // ?
+
+    //ACCEPT_OK:
+    //  int n, the proposal number of the ACCEPT request
+
+    //ACCEPT_REJECT:
+    // ?
 }
