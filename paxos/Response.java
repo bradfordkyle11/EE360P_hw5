@@ -16,16 +16,15 @@ public class Response implements Serializable {
   public String type;
   public int seq;
   public boolean accepted;
-  public int reqID;
   public int lastAcceptClock;
   public Object lastAcceptV;
+  public Object learnedV;
 
   //all variables needed for PREPARE_OK response
-  public Response(int seq, int reqID, boolean accepted, int lastAcceptClock, Object lastAcceptV, int me, int done)
+  public Response(int seq, boolean accepted, int lastAcceptClock, Object lastAcceptV, int me, int done)
   {
     this.type = "Prepare";
     this.seq = seq;
-    this.reqID = reqID;
     this.accepted = accepted;
     this.lastAcceptClock = lastAcceptClock;
     this.lastAcceptV = lastAcceptV;
@@ -33,21 +32,20 @@ public class Response implements Serializable {
     this.done = done;
   }
 
-  public Response(int seq, int reqID, boolean accepted, int me, int done)
+  public Response(int seq, boolean accepted, int me, int done)
   {
     this.type = "Accept";
     this.seq = seq;
-    this.reqID = reqID;
     this.accepted = accepted;
     this.me = me;
     this.done = done;
   }
 
-  public Response (int seq, int reqID, int me, int done)
+  public Response (int seq, Object learnedV, int me, int done)
   {
     this.type = "Decide";
     this.seq = seq;
-    this.reqID = reqID;
+    this.learnedV = learnedV;
     this.me = me;
     this.done = done;
   }

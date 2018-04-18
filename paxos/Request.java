@@ -8,9 +8,9 @@ import java.io.Serializable;
  * Hint: Easier to make each variable public
  */
 public class Request implements Serializable {
-    static final long serialVersionUID=1L;
+  static final long serialVersionUID=1L;
     // Your data here
-    public int seq;
+  public int seq;
     public int reqID; //must be unique and higher than any before
     public Object value;
 
@@ -19,16 +19,16 @@ public class Request implements Serializable {
     //for prepare requests, you only need the reqID
     public Request(int seq, int reqID)
     {
-        this.seq = seq;
-        this.reqID = reqID;
+      this.seq = seq;
+      this.reqID = reqID;
     }
 
     //for accept requests, you need the reqID and the value you want accepted
     public Request(int seq, int reqID, Object value)
     {
-        this.seq = seq;
-        this.reqID = reqID;
-        this.value = value;
+      this.seq = seq;
+      this.reqID = reqID;
+      this.value = value;
     }
 
     //Need PREPARE requests and ACCEPT requests
@@ -41,4 +41,4 @@ public class Request implements Serializable {
     //  value v, either the value received from prepare_ok, or a value you choose yourself if no value received
 
     //uniqueness of n: use (max_num_seen / num_paxos + 1) * num_paxos + paxos_id
-}
+  }

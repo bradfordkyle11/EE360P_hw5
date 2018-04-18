@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class Paxos implements PaxosRMI, Runnable{
 
-    ReentrantLock mutex;
+  ReentrantLock mutex;
     String[] peers; // hostname
     int[] ports; // host port
     int me; // index into peers[]
@@ -28,17 +28,23 @@ public class Paxos implements PaxosRMI, Runnable{
     class AgreementInstance
     {
       // Shared
-      int logicalClock = 0;
+      int clock = 0;
       // Proposer
       Object v = null;
       // Acceptor
       int lastAcceptClock = -1;
       Object lastAcceptV = null;
       // Learner
-      Object learnedV = null;
+      boolean decided = false;
+
+      AgreementInstance (Object v)
+      {
+        this.v = v;
+      }
     }
 
     HashMap<Integer, AgreementInstance> instances;
+    int latest_seq = -1;
 
 
     /**
@@ -48,28 +54,28 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public Paxos(int me, String[] peers, int[] ports){
 
-        this.me = me;
-        this.peers = peers;
-        this.ports = ports;
-        this.mutex = new ReentrantLock();
-        this.dead = new AtomicBoolean(false);
-        this.unreliable = new AtomicBoolean(false);
+      this.me = me;
+      this.peers = peers;
+      this.ports = ports;
+      this.mutex = new ReentrantLock();
+      this.dead = new AtomicBoolean(false);
+      this.unreliable = new AtomicBoolean(false);
 
-        // Your initialization code here
-        dones = new int[peers.length];
-        for (int i=0; i<dones.length; i++)
-          dones[i] = -1;
-        instances = new HashMap<Integer, AgreementInstance> ();
+      // Your initialization code here
+      dones = new int[peers.length];
+      for (int i=0; i<dones.length; i++)
+        dones[i] = -1;
+      instances = new HashMap<Integer, AgreementInstance> ();
 
-        // register peers, do not modify this part
-        try{
-            System.setProperty("java.rmi.server.hostname", this.peers[this.me]);
-            registry = LocateRegistry.createRegistry(this.ports[this.me]);
-            stub = (PaxosRMI) UnicastRemoteObject.exportObject(this, this.ports[this.me]);
-            registry.rebind("Paxos", stub);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+      // register peers, do not modify this part
+      try{
+        System.setProperty("java.rmi.server.hostname", this.peers[this.me]);
+        registry = LocateRegistry.createRegistry(this.ports[this.me]);
+        stub = (PaxosRMI) UnicastRemoteObject.exportObject(this, this.ports[this.me]);
+        registry.rebind("Paxos", stub);
+      } catch(Exception e){
+        e.printStackTrace();
+      }
     }
 
 
@@ -87,24 +93,24 @@ public class Paxos implements PaxosRMI, Runnable{
      * this function.
      */
     public Response Call(String rmi, Request req, int id){
-        Response callReply = null;
+      Response callReply = null;
 
-        PaxosRMI stub;
-        try{
-            Registry registry=LocateRegistry.getRegistry(this.ports[id]);
-            stub=(PaxosRMI) registry.lookup("Paxos");
-            if(rmi.equals("Prepare"))
-                callReply = stub.Prepare(req);
-            else if(rmi.equals("Accept"))
-                callReply = stub.Accept(req);
-            else if(rmi.equals("Decide"))
-                callReply = stub.Decide(req);
-            else
-                System.out.println("Wrong parameters!");
-        } catch(Exception e){
-            return null;
-        }
-        return callReply;
+      PaxosRMI stub;
+      try{
+        Registry registry=LocateRegistry.getRegistry(this.ports[id]);
+        stub=(PaxosRMI) registry.lookup("Paxos");
+        if(rmi.equals("Prepare"))
+          callReply = stub.Prepare(req);
+        else if(rmi.equals("Accept"))
+          callReply = stub.Accept(req);
+        else if(rmi.equals("Decide"))
+          callReply = stub.Decide(req);
+        else
+          System.out.println("Wrong parameters!");
+      } catch(Exception e){
+        return null;
+      }
+      return callReply;
     }
 
 
@@ -126,12 +132,82 @@ public class Paxos implements PaxosRMI, Runnable{
      * is reached.
      */
     public void Start(int seq, Object value){
-        // Your code here
+      instances.put (seq, new AgreementInstance (value);
+      latest_seq = seq;
+      new Thread (this).start ();
+    }
+
+    class Caller implements Runnable
+    {
+      String type;
+      Request r;
+      int serverID;
+      Response retVal = null;
+
+      Caller (String type, Request r, int serverID)
+      {
+        this.type = type;
+        this.r = r;
+        this.serverID = serverID;
+      }
+
+      public void run ()
+      {
+        retVal = Call (type, r, serverID);
+      }
     }
 
     @Override
     public void run(){
-        //Your code here
+      int seq = latest_seq;
+      AgreementInstance ctx = instances.get (seq);
+      while (!ctx.decided)
+      {
+        // Get next logical clock value.
+        ctx.clock = (ctx.clock / peers.length + 1) * peers.length + me;
+        // Prepare proposal.
+        Request proposal = new Request (seq, ctx.clock);
+        // Track proposals sent in these arrays.
+        Caller callers[] = new Caller[peers.length];
+        Thread calls[] = new Thread[peers.length];
+        // Send each proposal in a new thread.
+        for (int i=0; i<peers.length; i++)
+        {
+          callers[i] = new Caller ("Prepare", proposal, i);
+          calls[i] = new Thread (callers[i])
+          calls[i].start ();
+        }
+
+        // Receive proposal responses, counting okays.
+        int okays = 0;
+        for (int i=0; i<peers.length; i++)
+        {
+          call[i].join ();
+          if (callers[i].retVal.accepted)
+            okays++;
+          if (okays > peers.length / 2)
+            break;
+        }
+
+        // Go to round if no majority acceptance.
+        if (okays <= peers.length / 2)
+          continue;
+
+        // Match the value of any old accepted proposals.
+        int maxAcceptClock = -1;
+        for (Caller caller : callers)
+        {
+          if (caller.retVal == null || !caller.retVal.accepted)
+            continue;
+          // Match the most recent of previously accepted proposals.
+          if (caller.retVal.lastAcceptClock > maxAcceptClock)
+          {
+            ctx.v = caller.retVal.lastAcceptV;
+            maxAcceptClock = caller.retVal.lastAcceptClock;
+          }
+
+        }
+      }
     }
 
     // RMI handler
@@ -221,13 +297,13 @@ public class Paxos implements PaxosRMI, Runnable{
      * helper class for Status() return
      */
     public class retStatus{
-        public State state;
-        public Object v;
+      public State state;
+      public Object v;
 
-        public retStatus(State state, Object v){
-            this.state = state;
-            this.v = v;
-        }
+      public retStatus(State state, Object v){
+        this.state = state;
+        this.v = v;
+      }
     }
 
     /**
@@ -236,27 +312,27 @@ public class Paxos implements PaxosRMI, Runnable{
      * Please don't change these four functions.
      */
     public void Kill(){
-        this.dead.getAndSet(true);
-        if(this.registry != null){
-            try {
-                UnicastRemoteObject.unexportObject(this.registry, true);
-            } catch(Exception e){
-                System.out.println("None reference");
-            }
+      this.dead.getAndSet(true);
+      if(this.registry != null){
+        try {
+          UnicastRemoteObject.unexportObject(this.registry, true);
+        } catch(Exception e){
+          System.out.println("None reference");
         }
+      }
     }
 
     public boolean isDead(){
-        return this.dead.get();
+      return this.dead.get();
     }
 
     public void setUnreliable(){
-        this.unreliable.getAndSet(true);
+      this.unreliable.getAndSet(true);
     }
 
     public boolean isunreliable(){
-        return this.unreliable.get();
+      return this.unreliable.get();
     }
 
 
-}
+  }
