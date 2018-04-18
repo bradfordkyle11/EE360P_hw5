@@ -49,7 +49,14 @@ public class Paxos implements PaxosRMI, Runnable{
         this.unreliable = new AtomicBoolean(false);
 
         // Your initialization code here
-
+        dones = new int[peers.length];
+        for (int i=0; i<dones.length; i++)
+          dones[i] = -1;
+        logicalClock = new HashMap<Integer,Integer> ();
+        v = new HashMap<Integer,Object> ();
+        lastAcceptClock = new HashMap<Integer,Integer> ();
+        lastAcceptV = new HashMap<Integer,Object> ();
+        learnedV = new HashMap<Integer,Object> ();
 
         // register peers, do not modify this part
         try{
