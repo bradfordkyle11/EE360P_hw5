@@ -14,16 +14,16 @@ public class Response implements Serializable {
     public int highestAccept;
     public int done;
     public int acceptorID;
-    public String command;
+    public Object value;
 
     //all variables needed for PREPARE_OK response
-    public Response(boolean accepted, int acceptorID, int reqRespondingTo, int highestAccept, String command, int done)
+    public Response(boolean accepted, int acceptorID, int reqRespondingTo, int highestAccept, Object value, int done)
     {
         this.accepted = accepted;
         this.acceptorID = acceptorID;
         this.reqRespondingTo = reqRespondingTo;
         this.highestAccept = highestAccept;
-        this.command = command;
+        this.value = value;
         this.done = done;
     }
 

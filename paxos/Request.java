@@ -11,7 +11,7 @@ public class Request implements Serializable {
     static final long serialVersionUID=1L;
     // Your data here
     public int reqID; //must be unique and higher than any before
-    public String command;
+    public Object value;
 
     // Your constructor and methods here
 
@@ -19,14 +19,13 @@ public class Request implements Serializable {
     public Request(int reqID)
     {
         this.reqID = reqID;
-        command = "";
     }
 
-    //for accept requests, you need the reqID and the command you want accepted
-    public Request(int reqID, String command)
+    //for accept requests, you need the reqID and the value you want accepted
+    public Request(int reqID, Object value)
     {
         this.reqID = reqID;
-        this.command = command;
+        this.value = value;
     }
 
     //Need PREPARE requests and ACCEPT requests
@@ -36,7 +35,7 @@ public class Request implements Serializable {
     
     //ACCEPT:
     //  int n, unique number that is higher than any seen before
-    //  command v, either the command received from prepare_ok, or a command you choose yourself if no command received 
+    //  value v, either the value received from prepare_ok, or a value you choose yourself if no value received 
 
     //uniqueness of n: use (max_num_seen / num_paxos + 1) * num_paxos + paxos_id 
 }
