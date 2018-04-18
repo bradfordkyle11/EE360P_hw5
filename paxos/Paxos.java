@@ -132,7 +132,7 @@ public class Paxos implements PaxosRMI, Runnable{
      * is reached.
      */
     public void Start(int seq, Object value){
-      instances.put (seq, new AgreementInstance (value);
+      instances.put (seq, new AgreementInstance (value));
       latest_seq = seq;
       new Thread (this).start ();
     }
@@ -174,7 +174,7 @@ public class Paxos implements PaxosRMI, Runnable{
         for (int i=0; i<peers.length; i++)
         {
           callers[i] = new Caller ("Prepare", proposal, i);
-          calls[i] = new Thread (callers[i])
+          calls[i] = new Thread (callers[i]);
           calls[i].start ();
         }
 
@@ -182,7 +182,14 @@ public class Paxos implements PaxosRMI, Runnable{
         int okays = 0;
         for (int i=0; i<peers.length; i++)
         {
-          call[i].join ();
+          try
+          {
+            calls[i].join ();
+          }
+          catch (Exception e)
+          {
+            e.printStackTrace();
+          }
           if (callers[i].retVal.accepted)
             okays++;
           if (okays > peers.length / 2)
