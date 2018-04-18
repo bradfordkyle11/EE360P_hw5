@@ -288,6 +288,8 @@ public class Paxos implements PaxosRMI, Runnable{
       context.decided = true;
       context.v = req.value;
       dones[req.me] = req.done;
+
+      return new Response ();
     }
 
     /**
@@ -308,6 +310,7 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public int Max(){
         // Your code here
+      return 0;
     }
 
     /**
@@ -340,6 +343,7 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public int Min(){
         // Your code here
+      return 0;
 
     }
 
@@ -354,7 +358,7 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public retStatus Status(int seq){
         // Your code here
-
+      return null;
     }
 
     /**
