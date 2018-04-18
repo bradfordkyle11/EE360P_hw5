@@ -22,7 +22,17 @@ public class Paxos implements PaxosRMI, Runnable{
     AtomicBoolean unreliable;// for testing
 
     // Your data here
+    int[] dones;
 
+    // Shared
+    HashMap<Integer,Integer> logicalClock;
+    // Proposer
+    HashMap<Integer,Object> v;
+    // Acceptor
+    HashMap<Integer,Integer> lastAcceptClock;
+    HashMap<Integer,Object> lastAcceptV;
+    // Learner
+    HashMap<Integer,Object> learnedV;
 
     /**
      * Call the constructor to create a Paxos peer.
