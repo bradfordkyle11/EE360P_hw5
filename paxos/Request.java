@@ -10,7 +10,7 @@ import java.io.Serializable;
 public class Request implements Serializable {
   static final long serialVersionUID=1L;
     // Your data here
-  public int seq;
+    public int seq;
     public int reqID; //must be unique and higher than any before
     public Object value;
     public int me;

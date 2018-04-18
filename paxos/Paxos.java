@@ -188,7 +188,8 @@ public class Paxos implements PaxosRMI, Runnable{
     }
 
     @Override
-    public void run(){
+    public void run()
+    {
       int seq = latest_seq;
       AgreementInstance context = instances.get (seq);
 
@@ -243,19 +244,50 @@ public class Paxos implements PaxosRMI, Runnable{
     }
 
     // RMI handler
-    public Response Prepare(Request req){
-        // your code here
+    public Response Prepare(Request req)
+    {
+      AgreementInstance context = instances.get (req.seq);
+      boolean accepted = (req.reqID > context.reqID);
 
+      if (accepted)
+        context.reqID = req.reqID;
+
+      return new Response (
+        req.seq,
+        accepted,
+        context.lastAcceptReqID,
+        context.lastAcceptV,
+        me,
+        dones[me]
+      );
     }
 
-    public Response Accept(Request req){
-        // your code here
+    public Response Accept(Request req)
+    {
+      AgreementInstance context = instances.get (req.seq);
+      boolean accepted = (req.reqID >= context.reqID);
 
+      if (accepted)
+      {
+        context.reqID = req.reqID;
+        context.lastAcceptReqID = req.reqID;
+        context.lastAcceptV = req.value;
+      }
+
+      return new Response (
+        req.seq,
+        accepted,
+        me,
+        dones[me]
+      );
     }
 
-    public Response Decide(Request req){
-        // your code here
-
+    public Response Decide(Request req)
+    {
+      AgreementInstance context = instances.get (req.seq);
+      context.decided = true;
+      context.v = req.value;
+      dones[req.me] = req.done;
     }
 
     /**
