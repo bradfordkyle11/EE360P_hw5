@@ -10,21 +10,21 @@ import java.util.*;
 * This class is the main class you need to implement paxos instances.
 */
 public class Paxos implements PaxosRMI, Runnable{
-  
+
   ReentrantLock mutex;
   String[] peers; // hostname
   int[] ports; // host port
   int me; // index into peers[]
-  
+
   Registry registry;
   PaxosRMI stub;
-  
+
   AtomicBoolean dead;// for testing
   AtomicBoolean unreliable;// for testing
-  
+
   // Your data here
   int[] dones;
-  
+
   class AgreementInstance
   {
     // Shared
@@ -36,40 +36,40 @@ public class Paxos implements PaxosRMI, Runnable{
     Object lastAcceptV = null;
     // Learner
     boolean decided = false;
-    
+
     AgreementInstance()
     {}
-    
+
     AgreementInstance (Object v)
     {
       this.v = v;
     }
   }
-  
+
   HashMap<Integer, AgreementInstance> instances;
   int latest_seq = -1;
-  
-  
+
+
   /**
   * Call the constructor to create a Paxos peer.
   * The hostnames of all the Paxos peers (including this one)
   * are in peers[]. The ports are in ports[].
   */
   public Paxos(int me, String[] peers, int[] ports){
-    
+
     this.me = me;
     this.peers = peers;
     this.ports = ports;
     this.mutex = new ReentrantLock();
     this.dead = new AtomicBoolean(false);
     this.unreliable = new AtomicBoolean(false);
-    
+
     // Your initialization code here
     dones = new int[peers.length];
     for (int i=0; i<dones.length; i++)
-    dones[i] = -1;
+      dones[i] = -1;
     instances = new HashMap<Integer, AgreementInstance> ();
-    
+
     // register peers, do not modify this part
     try{
       System.setProperty("java.rmi.server.hostname", this.peers[this.me]);
@@ -80,8 +80,8 @@ public class Paxos implements PaxosRMI, Runnable{
       e.printStackTrace();
     }
   }
-  
-  
+
+
   /**
   * Call() sends an RMI to the RMI handler on server with
   * arguments rmi name, request message, and server id. It
@@ -97,7 +97,7 @@ public class Paxos implements PaxosRMI, Runnable{
   */
   public Response Call(String rmi, Request req, int id){
     Response callReply = null;
-    
+
     PaxosRMI stub;
     try{
       Registry registry=LocateRegistry.getRegistry(this.ports[id]);
@@ -115,8 +115,8 @@ public class Paxos implements PaxosRMI, Runnable{
     }
     return callReply;
   }
-  
-  
+
+
   /**
   * The application wants Paxos to start agreement on instance seq,
   * with proposed value v. Start() should start a new thread to run
@@ -139,21 +139,21 @@ public class Paxos implements PaxosRMI, Runnable{
     instances.put (seq, new AgreementInstance (value));
     new Thread (this).start ();
   }
-  
+
   class Caller implements Runnable
   {
     String type;
     Request r;
     int serverID;
     Response retVal = null;
-    
+
     Caller (String type, Request r, int serverID)
     {
       this.type = type;
       this.r = r;
       this.serverID = serverID;
     }
-    
+
     public void run ()
     {
       if (serverID == me)
@@ -163,13 +163,13 @@ public class Paxos implements PaxosRMI, Runnable{
         else if (type == "Accept")
           retVal = Accept (r);
         else // type == "Decide"
-          retVal = Decide (r);
+        retVal = Decide (r);
       }
       else
         retVal = Call (type, r, serverID);
     }
   }
-  
+
   boolean getMajority (String type, Request request, Caller[] callers, Thread[] calls, AgreementInstance context)
   {
     // Send each request in a new thread.
@@ -179,7 +179,7 @@ public class Paxos implements PaxosRMI, Runnable{
       calls[i] = new Thread (callers[i]);
       calls[i].start ();
     }
-    
+
     // Receive request responses, counting okays.
     int okays = 0;
     for (int i=0; i<peers.length && !isDead (); i++)
@@ -193,69 +193,69 @@ public class Paxos implements PaxosRMI, Runnable{
         e.printStackTrace();
       }
       if (callers[i].retVal == null)
-      continue;
+        continue;
       if (callers[i].retVal.accepted)
-      okays++;
+        okays++;
       else
-      context.reqID = callers[i].retVal.myReqID;
+        context.reqID = callers[i].retVal.myReqID;
     }
-    
+
     // (If majority found)
     return (okays > peers.length / 2);
   }
-  
+
   @Override
   public void run()
   {
     int seq = latest_seq;
     AgreementInstance context = instances.get (seq);
-    
+
     while (!context.decided && !isDead())
     {
       // Get next logical reqID value.
       context.reqID = (context.reqID / peers.length + 1) * peers.length + me;
-      
+
       // Prepare proposal.
       Request proposal = new Request (seq, context.reqID);
-      
+
       // Track proposals sent in these arrays.
       Caller callers[] = new Caller[peers.length];
       Thread calls[] = new Thread[peers.length];
-      
+
       // Continue next round if no majority acceptance.
       if (!getMajority ("Prepare", proposal, callers, calls, context))
-      continue;
-      
+        continue;
+
       // Match the value of any old accepted proposals.
       int maxAcceptReqID = -1;
       for (Caller caller : callers)
       {
         if (caller.retVal == null || !caller.retVal.accepted)
-        continue;
-        
+          continue;
+
         // Match just the most recent of previously accepted proposals.
         if (caller.retVal.lastAcceptReqID > maxAcceptReqID)
         {
           context.v = caller.retVal.lastAcceptV;
           maxAcceptReqID = caller.retVal.lastAcceptReqID;
         }
-        
+
         // Update dones[] through piggy-backed data.
         dones[caller.retVal.me] = caller.retVal.done;
       }
-      
+
       // Send Accept requests.
       Request accept = new Request (seq, context.reqID, context.v);
       if (!getMajority ("Accept", accept, callers, calls, context))
-      continue;
-      
+        continue;
+
       // Send decide messages.
       Request decide = new Request (seq, context.v, me, dones[me]);
-      
+
       getMajority("Decide", decide, callers, calls, context);
     }
   }
-  
+
   // RMI handler
   public Response Prepare(Request req)
   {
@@ -266,21 +266,21 @@ public class Paxos implements PaxosRMI, Runnable{
       instances.put(req.seq, context);
     }
     boolean accepted = (req.reqID > context.reqID);
-    
+
     if (accepted)
-    context.reqID = req.reqID;
-    
+      context.reqID = req.reqID;
+
     return new Response (
-    req.seq,
-    accepted,
-    context.reqID,
-    context.lastAcceptReqID,
-    context.lastAcceptV,
-    me,
-    dones[me]
-    );
+      req.seq,
+      accepted,
+      context.reqID,
+      context.lastAcceptReqID,
+      context.lastAcceptV,
+      me,
+      dones[me]
+      );
   }
-  
+
   public Response Accept(Request req)
   {
     AgreementInstance context = instances.get (req.seq);
@@ -290,23 +290,23 @@ public class Paxos implements PaxosRMI, Runnable{
       instances.put(req.seq, context);
     }
     boolean accepted = (req.reqID >= context.reqID);
-    
+
     if (accepted)
     {
       context.reqID = req.reqID;
       context.lastAcceptReqID = req.reqID;
       context.lastAcceptV = req.value;
     }
-    
+
     return new Response (
-    req.seq,
-    accepted,
-    context.reqID,
-    me,
-    dones[me]
-    );
+      req.seq,
+      accepted,
+      context.reqID,
+      me,
+      dones[me]
+      );
   }
-  
+
   public Response Decide(Request req)
   {
     AgreementInstance context = instances.get (req.seq);
@@ -318,10 +318,10 @@ public class Paxos implements PaxosRMI, Runnable{
     context.decided = true;
     context.v = req.value;
     dones[req.me] = req.done;
-    
+
     return new Response ();
   }
-  
+
   /**
   * The application on this machine is done with
   * all instances <= seq.
@@ -331,8 +331,8 @@ public class Paxos implements PaxosRMI, Runnable{
   public void Done(int seq) {
     // Your code here
   }
-  
-  
+
+
   /**
   * The application wants to know the
   * highest instance sequence known to
@@ -342,25 +342,25 @@ public class Paxos implements PaxosRMI, Runnable{
     // Your code here
     return 0;
   }
-  
+
   /**
   * Min() should return one more than the minimum among z_i,
   * where z_i is the highest number ever passed
   * to Done() on peer i. A peers z_i is -1 if it has
   * never called Done().
-  
+
   * Paxos is required to have forgotten all information
   * about any instances it knows that are < Min().
   * The point is to free up memory in long-running
   * Paxos-based servers.
-  
+
   * Paxos peers need to exchange their highest Done()
   * arguments in order to implement Min(). These
   * exchanges can be piggybacked on ordinary Paxos
   * agreement protocol messages, so it is OK if one
   * peers Min does not reflect another Peers Done()
   * until after the next instance is agreed to.
-  
+
   * The fact that Min() is defined as a minimum over
   * all Paxos peers means that Min() cannot increase until
   * all peers have been heard from. So if a peer is dead
@@ -374,11 +374,11 @@ public class Paxos implements PaxosRMI, Runnable{
   public int Min(){
     // Your code here
     return 0;
-    
+
   }
-  
-  
-  
+
+
+
   /**
   * the application wants to know whether this
   * peer thinks an instance has been decided,
@@ -393,29 +393,29 @@ public class Paxos implements PaxosRMI, Runnable{
       context = new AgreementInstance();
       instances.put(seq, context);
     }
-    
+
     State state;
     if (context.decided)
       state = State.Decided;
     else
       state = State.Pending;
-    
+
     return new retStatus(state, context.v);
   }
-  
+
   /**
   * helper class for Status() return
   */
   public class retStatus{
     public State state;
     public Object v;
-    
+
     public retStatus(State state, Object v){
       this.state = state;
       this.v = v;
     }
   }
-  
+
   /**
   * Tell the peer to shut itself down.
   * For testing.
@@ -431,18 +431,18 @@ public class Paxos implements PaxosRMI, Runnable{
       }
     }
   }
-  
+
   public boolean isDead(){
     return this.dead.get();
   }
-  
+
   public void setUnreliable(){
     this.unreliable.getAndSet(true);
   }
-  
+
   public boolean isunreliable(){
     return this.unreliable.get();
   }
-  
-  
+
+
 }
