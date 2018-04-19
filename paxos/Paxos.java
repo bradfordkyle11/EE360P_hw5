@@ -153,6 +153,15 @@ public class Paxos implements PaxosRMI, Runnable{
 
       public void run ()
       {
+        if (serverID == me)
+        {
+          if (type == "Prepare")
+            retVal = Prepare (r);
+          else if (type == "Accept")
+            retVal = Accept (r);
+          else // type == "Decide"
+            retVal = Decide (r);
+        }
         retVal = Call (type, r, serverID);
       }
     }
@@ -169,7 +178,7 @@ public class Paxos implements PaxosRMI, Runnable{
 
       // Receive request responses, counting okays.
       int okays = 0;
-      for (int i=0; i<peers.length; i++)
+      for (int i=0; i<peers.length && !isDead (); i++)
       {
         try
         {
@@ -181,6 +190,8 @@ public class Paxos implements PaxosRMI, Runnable{
         }
         if (callers[i].retVal.accepted)
           okays++;
+        else
+          context.reqID = callers[i].retVal.reqID;
       }
 
       // (If majority found)
@@ -193,7 +204,7 @@ public class Paxos implements PaxosRMI, Runnable{
       int seq = latest_seq;
       AgreementInstance context = instances.get (seq);
 
-      while (!context.decided)
+      while (!context.decided && !isDead())
       {
         // Get next logical reqID value.
         context.reqID = (context.reqID / peers.length + 1) * peers.length + me;
@@ -255,6 +266,7 @@ public class Paxos implements PaxosRMI, Runnable{
       return new Response (
         req.seq,
         accepted,
+        context.reqID,
         context.lastAcceptReqID,
         context.lastAcceptV,
         me,
@@ -277,6 +289,7 @@ public class Paxos implements PaxosRMI, Runnable{
       return new Response (
         req.seq,
         accepted,
+        context.reqID,
         me,
         dones[me]
       );

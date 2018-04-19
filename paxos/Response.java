@@ -15,25 +15,28 @@ public class Response implements Serializable {
   // your data here
   public int seq;
   public boolean accepted;
+  public int myReqID;
   public int lastAcceptReqID;
   public Object lastAcceptV;
   public Object learnedV;
 
   //all variables needed for PREPARE_OK response
-  public Response(int seq, boolean accepted, int lastAcceptReqID, Object lastAcceptV, int me, int done)
+  public Response(int seq, boolean accepted, int myReqID, int lastAcceptReqID, Object lastAcceptV, int me, int done)
   {
     this.seq = seq;
     this.accepted = accepted;
+    this.myReqID = myReqID;
     this.lastAcceptReqID = lastAcceptReqID;
     this.lastAcceptV = lastAcceptV;
     this.me = me;
     this.done = done;
   }
 
-  public Response(int seq, boolean accepted, int me, int done)
+  public Response(int seq, boolean accepted, int myReqID, int me, int done)
   {
     this.seq = seq;
     this.accepted = accepted;
+    this.myReqID = myReqID;
     this.me = me;
     this.done = done;
   }
