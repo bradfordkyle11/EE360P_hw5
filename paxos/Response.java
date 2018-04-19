@@ -42,7 +42,9 @@ public class Response implements Serializable {
   }
 
   public Response ()
-  {}
+  {
+    this.accepted = true;
+  }
 
   // Need PREPARE_OK, PREPARE_REJECT, ACCEPT_OK, ACCEPT_REJECT
 
