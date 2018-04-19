@@ -135,7 +135,7 @@ public class Paxos implements PaxosRMI, Runnable{
   * is reached.
   */
   public void Start(int seq, Object value){
-    latest_seq = seq;
+    latest_seq = seq; // Add a semaphore and unlock inside run!!!!
     instances.put (seq, new AgreementInstance (value));
     new Thread (this).start ();
   }
