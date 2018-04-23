@@ -5,6 +5,7 @@ import java.rmi.registry.Registry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -50,10 +51,11 @@ public class Paxos implements PaxosRMI, Runnable{
     }
   }
 
-  HashMap<Integer, AgreementInstance> instances;
+  ConcurrentSkipListMap<Integer, AgreementInstance> instances;
   ConcurrentLinkedDeque<Integer> seqs;
   final ExecutorService pool;
-  int latest_seq = -1;
+  int maxSeq = -1;
+  int doneSeq = -1;
 
 
   /**
@@ -74,7 +76,7 @@ public class Paxos implements PaxosRMI, Runnable{
     dones = new int[peers.length];
     for (int i=0; i<dones.length; i++)
       dones[i] = -1;
-    instances = new HashMap<Integer, AgreementInstance> ();
+    instances = new ConcurrentSkipListMap<Integer, AgreementInstance> ();
     seqs = new ConcurrentLinkedDeque<>();
     pool = Executors.newWorkStealingPool();
 
@@ -146,7 +148,10 @@ public class Paxos implements PaxosRMI, Runnable{
     System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
     seqs.add(seq);
     instances.put (seq, new AgreementInstance (value));
-    latest_seq = seq;
+    if (seq > maxSeq)
+    {
+      maxSeq = seq;
+    }
     pool.execute(new Thread(this));
   }
   
@@ -295,6 +300,7 @@ public class Paxos implements PaxosRMI, Runnable{
         
         // Update dones[] through piggy-backed data.
         dones[caller.retVal.me] = caller.retVal.done;
+        forgetOld();
       }
       
       System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
@@ -388,7 +394,7 @@ public class Paxos implements PaxosRMI, Runnable{
   * see the comments for Min() for more explanation.
   */
   public void Done(int seq) {
-    // Your code here
+    dones[me] = seq;
   }
 
 
@@ -398,8 +404,7 @@ public class Paxos implements PaxosRMI, Runnable{
   * this peer.
   */
   public int Max(){
-    // Your code here
-    return 0;
+    return maxSeq;
   }
 
   /**
@@ -432,8 +437,15 @@ public class Paxos implements PaxosRMI, Runnable{
   */
   public int Min(){
     // Your code here
-    return 0;
+    int min = Integer.MAX_VALUE;
 
+    for (int doneVal : dones)
+    {
+      if (doneVal < min)
+        min = doneVal;
+    }
+
+    return min + 1;
   }
 
 
@@ -503,5 +515,12 @@ public class Paxos implements PaxosRMI, Runnable{
     return this.unreliable.get();
   }
 
-
+  private void forgetOld()
+  {
+    int min = Min();
+    while (instances.firstKey() < min)
+    {
+      instances.remove(instances.firstKey());
+    }
+  }
 }

@@ -223,9 +223,9 @@ public class PaxosTest {
             }
 
         }
+        cleanup(pxa);
         assertFalse("Min() did not advance after Done()", ok != true);
         System.out.println("... Passed");
-        cleanup(pxa);
 
 
     }
