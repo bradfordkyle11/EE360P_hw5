@@ -4,6 +4,10 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.Registry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.*;
 
 /**
@@ -47,6 +51,8 @@ public class Paxos implements PaxosRMI, Runnable{
   }
 
   HashMap<Integer, AgreementInstance> instances;
+  ConcurrentLinkedDeque<Integer> seqs;
+  final ExecutorService pool;
   int latest_seq = -1;
 
 
@@ -69,6 +75,8 @@ public class Paxos implements PaxosRMI, Runnable{
     for (int i=0; i<dones.length; i++)
       dones[i] = -1;
     instances = new HashMap<Integer, AgreementInstance> ();
+    seqs = new ConcurrentLinkedDeque<>();
+    pool = Executors.newWorkStealingPool();
 
     // register peers, do not modify this part
     try{
@@ -135,18 +143,20 @@ public class Paxos implements PaxosRMI, Runnable{
   * is reached.
   */
   public void Start(int seq, Object value){
-    latest_seq = seq; // Add a semaphore and unlock inside run!!!!
+    System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
+    seqs.add(seq);
     instances.put (seq, new AgreementInstance (value));
-    new Thread (this).start ();
+    latest_seq = seq;
+    pool.execute(new Thread(this));
   }
-
+  
   class Caller implements Runnable
   {
     String type;
     Request r;
     int serverID;
     Response retVal = null;
-
+    
     Caller (String type, Request r, int serverID)
     {
       this.type = type;
@@ -156,42 +166,52 @@ public class Paxos implements PaxosRMI, Runnable{
 
     public void run ()
     {
+      // System.out.println("> Thread " + Thread.currentThread().getId() + " running.");
       if (serverID == me)
       {
         if (type == "Prepare")
-          retVal = Prepare (r);
+        retVal = Prepare (r);
         else if (type == "Accept")
-          retVal = Accept (r);
+        retVal = Accept (r);
         else // type == "Decide"
         retVal = Decide (r);
       }
       else
         retVal = Call (type, r, serverID);
+      
+      // System.out.println("< Thread " + Thread.currentThread().getId() + " done.");
     }
   }
-
+  
   boolean getMajority (String type, Request request, Caller[] callers, Thread[] calls, AgreementInstance context)
   {
+    // System.out.println("getMajority called");
     // Send each request in a new thread.
+
+    ExecutorService callerPool = Executors.newWorkStealingPool();
+
     for (int i=0; i<peers.length; i++)
     {
       callers[i] = new Caller (type, request, i);
       calls[i] = new Thread (callers[i]);
-      calls[i].start ();
+      callerPool.execute(callers[i]);
     }
-
+    
     // Receive request responses, counting okays.
     int okays = 0;
-    for (int i=0; i<peers.length && !isDead (); i++)
+
+    callerPool.shutdown();
+    try
     {
-      try
-      {
-        calls[i].join ();
-      }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
+      callerPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+
+    for (int i=0; i<peers.length; i++)
+    {
       if (callers[i].retVal == null)
         continue;
       if (callers[i].retVal.accepted)
@@ -200,62 +220,73 @@ public class Paxos implements PaxosRMI, Runnable{
         context.reqID = callers[i].retVal.myReqID;
     }
 
+    System.out.println("okays received: " + okays);
+    
+    // System.out.println("getMajority returned");
     // (If majority found)
     return (okays > peers.length / 2);
   }
-
+  
   @Override
   public void run()
   {
-    int seq = latest_seq;
+    // System.out.println("> Thread " + Thread.currentThread().getId() + " running.");
+    int seq = seqs.pollFirst();
     AgreementInstance context = instances.get (seq);
-
+    
     while (!context.decided && !isDead())
     {
       // Get next logical reqID value.
       context.reqID = (context.reqID / peers.length + 1) * peers.length + me;
-
+      
       // Prepare proposal.
       Request proposal = new Request (seq, context.reqID);
-
+      System.out.println("Seq: " + seq + "Paxos " + me + " prepare.");
+      
       // Track proposals sent in these arrays.
       Caller callers[] = new Caller[peers.length];
       Thread calls[] = new Thread[peers.length];
-
+      
       // Continue next round if no majority acceptance.
       if (!getMajority ("Prepare", proposal, callers, calls, context))
-        continue;
-
+       continue;
+      
       // Match the value of any old accepted proposals.
       int maxAcceptReqID = -1;
       for (Caller caller : callers)
       {
         if (caller.retVal == null || !caller.retVal.accepted)
           continue;
-
+        
         // Match just the most recent of previously accepted proposals.
         if (caller.retVal.lastAcceptReqID > maxAcceptReqID)
         {
           context.v = caller.retVal.lastAcceptV;
           maxAcceptReqID = caller.retVal.lastAcceptReqID;
         }
-
+        
         // Update dones[] through piggy-backed data.
         dones[caller.retVal.me] = caller.retVal.done;
       }
-
+      
+      System.out.println("Seq: " + seq + "Paxos " + me + " accept " + context.v.toString());
       // Send Accept requests.
       Request accept = new Request (seq, context.reqID, context.v);
       if (!getMajority ("Accept", accept, callers, calls, context))
         continue;
-
+      
       // Send decide messages.
       Request decide = new Request (seq, context.v, me, dones[me]);
-
+      
+      System.out.println("Seq: " + seq + "Paxos " + me + " decide " + context.v.toString());
       getMajority("Decide", decide, callers, calls, context);
     }
-  }
+    // System.out.println("< Thread " + Thread.currentThread().getId() + " done.");
 
+    if (isDead())
+      pool.shutdownNow();
+  }
+  
   // RMI handler
   public Response Prepare(Request req)
   {
@@ -266,7 +297,7 @@ public class Paxos implements PaxosRMI, Runnable{
       instances.put(req.seq, context);
     }
     boolean accepted = (req.reqID > context.reqID);
-
+    
     if (accepted)
       context.reqID = req.reqID;
 
