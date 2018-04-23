@@ -458,6 +458,10 @@ public class Paxos implements PaxosRMI, Runnable{
   * it should not contact other Paxos peers.
   */
   public retStatus Status(int seq){
+    if (seq < Min())
+    {
+      return new retStatus(State.Forgotten, null);
+    }
     AgreementInstance context = instances.get(seq);
     if (context == null)
     {
