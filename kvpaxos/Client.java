@@ -5,17 +5,17 @@ import java.rmi.registry.Registry;
 
 
 public class Client {
-    String[] servers;
-    int[] ports;
+  String[] servers;
+  int[] ports;
+  String ID_base;
+  int requestNum = 0;
 
-    // Your data here
 
-
-    public Client(String[] servers, int[] ports){
-        this.servers = servers;
-        this.ports = ports;
-        // Your initialization code here
-    }
+  public Client(String[] servers, int[] ports){
+    this.servers = servers;
+    this.ports = ports;
+    this.ID_base = Long.parseLong (System.nanoTime ()) + '_';
+  }
 
     /**
      * Call() sends an RMI to the RMI handler on server with
@@ -31,32 +31,58 @@ public class Client {
      * this function.
      */
     public Response Call(String rmi, Request req, int id){
-        Response callReply = null;
-        KVPaxosRMI stub;
-        try{
-            Registry registry= LocateRegistry.getRegistry(this.ports[id]);
-            stub=(KVPaxosRMI) registry.lookup("KVPaxos");
-            if(rmi.equals("Get"))
-                callReply = stub.Get(req);
-            else if(rmi.equals("Put")){
-                callReply = stub.Put(req);}
-            else
-                System.out.println("Wrong parameters!");
+      Response callReply = null;
+      KVPaxosRMI stub;
+      try{
+        Registry registry= LocateRegistry.getRegistry(this.ports[id]);
+        stub=(KVPaxosRMI) registry.lookup("KVPaxos");
+        if(rmi.equals("Get"))
+          callReply = stub.Get(req);
+        else if(rmi.equals("Put")){
+          callReply = stub.Put(req);}
+          else
+            System.out.println("Wrong parameters!");
         } catch(Exception e){
-            return null;
+          return null;
         }
         return callReply;
-    }
+      }
 
-    // RMI handlers
-    public Integer Get(String key){
-        // Your code here
-        return 0;
-    }
+      public Integer Get(String key){
+        String ClientID = ID_base + Integer.parseInt (requestNum++);
+        Op op = Op ("Get", ClientID, key, null);
+        Request req = new Request (op);
 
-    public boolean Put(String key, Integer value){
-        // Your code here
-        return false;
-    }
+        int serverID = 0;
+        Response result = Call ("Get", req, serverID);
+        while (result == null)
+        {
+          serverID = nextServerID (serverID);
+          result = Call ("Get", req, serverID);
+        }
 
-}
+        return result.value;
+      }
+
+      int nextServerID (int serverID)
+      {
+        return (serverID + 1) % servers.length;
+      }
+
+      public boolean Put(String key, Integer value){
+        String ClientID = ID_base + Integer.parseInt (requestNum++);
+        Op op = Op ("Put", ClientID, key, value);
+        Request req = new Request (op);
+
+        int serverID = 0;
+        Response result = Call ("Put", req, serverID);
+        while (result == null)
+        {
+          serverID = nextServerID (serverID);
+          result = Call ("Put", req, serverID);
+        }
+
+        return true;
+      }
+
+    }
