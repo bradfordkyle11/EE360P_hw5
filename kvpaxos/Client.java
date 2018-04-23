@@ -14,7 +14,7 @@ public class Client {
   public Client(String[] servers, int[] ports){
     this.servers = servers;
     this.ports = ports;
-    this.ID_base = Long.parseLong (System.nanoTime ()) + '_';
+    this.ID_base = Long.toString (System.nanoTime ()) + '_';
   }
 
     /**
@@ -49,8 +49,8 @@ public class Client {
       }
 
       public Integer Get(String key){
-        String ClientID = ID_base + Integer.parseInt (requestNum++);
-        Op op = Op ("Get", ClientID, key, null);
+        String ClientID = ID_base + Integer.toString (requestNum++);
+        Op op = new Op ("Get", ClientID, key, null);
         Request req = new Request (op);
 
         int serverID = 0;
@@ -70,8 +70,8 @@ public class Client {
       }
 
       public boolean Put(String key, Integer value){
-        String ClientID = ID_base + Integer.parseInt (requestNum++);
-        Op op = Op ("Put", ClientID, key, value);
+        String ClientID = ID_base + Integer.toString (requestNum++);
+        Op op = new Op ("Put", ClientID, key, value);
         Request req = new Request (op);
 
         int serverID = 0;

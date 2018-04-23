@@ -10,7 +10,10 @@ public class Request implements Serializable {
     static final long serialVersionUID=11L;
     Op op;
 
-    public Request ()
+    public Request (Op op)
+    {
+        this.op = op;
+    }
 
     // Your constructor and methods here
 

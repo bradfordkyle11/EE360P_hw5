@@ -7,13 +7,13 @@ import java.io.Serializable;
 public class Op implements Serializable{
     static final long serialVersionUID=33L;
     String type;
-    String ClientID;
+    String clientID;
     String key;
     Integer value;
 
-    public Op(String type, String ClientID, String key, Integer value){
+    public Op(String type, String clientID, String key, Integer value){
         this.type = type;
-        this.ClientID = ClientID;
+        this.clientID = clientID;
         this.key = key;
         this.value = value;
     }
