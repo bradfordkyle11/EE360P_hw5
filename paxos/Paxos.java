@@ -54,7 +54,6 @@ public class Paxos implements PaxosRMI, Runnable{
   ConcurrentSkipListMap<Integer, AgreementInstance> instances;
   ConcurrentLinkedDeque<Integer> seqs;
   final ExecutorService pool;
-  int maxSeq = -1;
   int doneSeq = -1;
 
 
@@ -148,10 +147,6 @@ public class Paxos implements PaxosRMI, Runnable{
     System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
     seqs.add(seq);
     instances.put (seq, new AgreementInstance (value));
-    if (seq > maxSeq)
-    {
-      maxSeq = seq;
-    }
     pool.execute(new Thread(this));
   }
   
@@ -404,7 +399,9 @@ public class Paxos implements PaxosRMI, Runnable{
   * this peer.
   */
   public int Max(){
-    return maxSeq;
+    if (instances.isEmpty())
+      return -1;
+    return instances.lastKey();
   }
 
   /**
