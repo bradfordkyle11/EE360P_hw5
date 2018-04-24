@@ -12,12 +12,12 @@ public class KVPaxosTest {
 
   public void check(Client ck, String key, Integer value){
     Integer v = ck.Get(key);
-    assertTrue("Get(" + key + ")->" + v + ", expected " + value, v.equals(value));
+    assertTrue("Get(" + key + ")=>" + v + ", expected " + value, v.equals(value));
   }
 
   @Test
   public void TestBasic(){
-    final int npaxos = 2;
+    final int npaxos = 10;
     String host = "127.0.0.1";
     String[] peers = new String[npaxos];
     int[] ports = new int[npaxos];
@@ -31,12 +31,32 @@ public class KVPaxosTest {
       kva[i] = new Server(peers, ports, i);
     }
 
-    Client ck = new Client(peers, ports);
+    Client[] ck = new Client[10];
+    for (int i=0; i<ck.length; i++)
+      ck[i] = new Client (peers, ports);
+
     System.out.println("Test: Basic put/get ...");
-    ck.Put("app", 6);
-    check(ck, "app", 6);
-    ck.Put("a", 70);
-    check(ck, "a", 70);
+    for (int i=0; i<100; i++)
+    {
+      System.out.println ("i: " + i);
+      for (int j=0; j<ck.length; j++)
+      {
+        ck[j].Put(Integer.toString (j) + "app", 6 + i + j);
+        ck[j].Get(Integer.toString (j) + "app");
+        ck[j].Put(Integer.toString (j) + "bla", -100 + i + j);
+        ck[j].Get(Integer.toString (j) + "app");
+        ck[j].Get(Integer.toString (j) + "app");
+        ck[j].Put(Integer.toString (j) + "app", 5 + i + j);
+        ck[j].Get(Integer.toString (j) + "app");
+        ck[j].Put(Integer.toString (j) + "app", 6 + i + j);
+        ck[j].Get(Integer.toString (j) + "app");
+        ck[j].Get(Integer.toString (j) + "app");
+        check(ck[j], Integer.toString (j) + "app", 6 + i + j);
+        ck[j].Put(Integer.toString (j) + "a", 70 + i + j);
+        check(ck[j], Integer.toString (j) + "a", 70 + i + j);
+        check(ck[j], Integer.toString (j) + "bla", -100 + i + j);
+      }
+    }
 
     System.out.println("... Passed");
 

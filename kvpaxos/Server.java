@@ -26,6 +26,7 @@ public class Server implements KVPaxosRMI {
   ConcurrentHashMap <String, Integer> kvStore;
   ConcurrentHashMap <String, Integer> requestNums;
 
+
   public Server(String[] servers, int[] ports, int me){
     this.me = me;
     this.servers = servers;
@@ -46,8 +47,8 @@ public class Server implements KVPaxosRMI {
     }
   }
 
+
   public Op wait(int seq) {
-    System.out.println ("wait (seq: " + seq + ")");
     int to = 10;
     while (true) {
       Paxos.retStatus ret = this.px.Status (seq);
@@ -55,7 +56,6 @@ public class Server implements KVPaxosRMI {
         return Op.class.cast (ret.v);
       }
       try{
-        System.out.println (">>> Sleep (me: " + me + ") (seq: " + seq + ")");
         Thread.sleep (to);
       }catch (Exception e){
         e.printStackTrace ();
@@ -66,9 +66,9 @@ public class Server implements KVPaxosRMI {
     }
   }
 
+
   public int getFulfilledSeq (String clientID)
   {
-    System.out.println ("getFulfilledSeq (clientID: " + clientID + ")");
     // Loop through seen seq's looking for if the request was already fulfilled
     for (int seq=px.Min (); seq<=px.Max (); seq++)
     {
@@ -82,16 +82,14 @@ public class Server implements KVPaxosRMI {
     return -1;
   }
 
+
     // RMI handlers
   public Response Get(Request req) {
-    System.out.println ("Get (req: " + req.op + ")");
     // Return old result if request already fulfilled
     int seq = getFulfilledSeq (req.op.clientID);
     if (seq >= 0)
-      {
-        System.out.println ("1");
+    {
       Response resp = new Response (getSeqValue(seq));
-        System.out.println ("Server returning from Get: " + resp);
       return resp;
     }
 
@@ -105,12 +103,10 @@ public class Server implements KVPaxosRMI {
     // while request failed (Paxos decided on a different proposal)
     while (!result.clientID.equals (req.op.clientID))
     {
-      System.out.println ("while (!result.clientID.equals (req.op.clientID))");
       // Return old result if request already fulfilled
       seq = getFulfilledSeq (req.op.clientID);
       if (seq >= 0)
-        {
-          System.out.println ("2");
+      {
         return new Response (getSeqValue(seq));
       }
 
@@ -120,50 +116,39 @@ public class Server implements KVPaxosRMI {
       result = wait (seq);
     }
 
-    System.out.println ("3");
     return new Response (getSeqValue(seq));
   }
 
 
   private int getSeqValue(int seq)
   {
-    System.out.println ("getSeqValue (seq: " + seq + ")");
     Op op = Op.class.cast(px.Status(seq).v);
     String key = op.key;
 
-    System.out.println ("i = "+Integer.toString(px.Min())+"; i < "+Integer.toString(seq)+"; i++)");
     for (int i = px.Min(); i < seq; i++)
     {
       op = wait(i);
-      System.out.println ("I got past the wait! i:" + i);
       if (op.type.equals ("Put"))
         kvStore.put (op.key, op.value);
 
-      System.out.println ("\there [0]");
       String[] clientID = op.clientID.split ("_");
-      System.out.println ("\there [1]");
       String ID_base = clientID[0];
-      System.out.println ("\there [2]");
       int requestNum = Integer.parseInt (clientID[1]);
-      System.out.println ("\there [3]");
-      System.out.println ("Confirm..." + (requestNums.contains (ID_base) ? "true" : "false"));
-      System.out.println ("Confirm..." + (requestNums.contains (ID_base) && requestNum > requestNums.get (ID_base) ? "true" : "false"));
       if (requestNums.contains (ID_base) && requestNum > requestNums.get (ID_base))
       {
-        System.out.println ("\there [4]");
         requestNums.put (ID_base, requestNum);
-        System.out.println ("\there [5]");
         px.Done (i);
-        System.out.println ("\there [6]");
+      }
+      else if (!requestNums.contains (ID_base))
+      {
+        requestNums.put (ID_base, requestNum);
       }
     }
-    System.out.println ("\t\tReturning: " + key + " -> " + kvStore.get(key));
     return kvStore.get(key);
   }
 
 
   public Response Put(Request req){
-    System.out.println ("Put (req: " + req.op + ")");
     // Noop if request already fulfilled
     int seq = getFulfilledSeq (req.op.clientID);
     if (seq >= 0)
@@ -192,6 +177,4 @@ public class Server implements KVPaxosRMI {
 
     return new Response ();
   }
-
-
 }
