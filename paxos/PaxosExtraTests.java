@@ -72,8 +72,10 @@ public class PaxosExtraTests {
     int n = 1;
     Paxos[] pax = initPaxos(n);
     pax[0].Start(0,1000);
-    assertTrue(waitn(pax, 0, n));
+
+    boolean success = waitn(pax, 0, n);
     cleanup(pax);
+    assertTrue(success);
   }
 
   //multiple proposer
@@ -83,8 +85,10 @@ public class PaxosExtraTests {
     Paxos[] pax = initPaxos(n);
     pax[0].Start(0, 1000);
     pax[1].Start(0, 2000);
-    assertTrue(waitn(pax, 0, n));
+
+    boolean success = waitn(pax, 0, n);
     cleanup(pax);
+    assertTrue(success);
   }
 
   @Test
@@ -94,12 +98,17 @@ public class PaxosExtraTests {
     pax[0].Start(0, 1000);
     pax[1].Start(0, 2000);
     pax[2].Start(0, 3000);
-    assertTrue(waitn(pax, 0, n));
+
+    boolean[] success = new boolean[2];
+    success[0] = waitn(pax, 0, n);
+    assertTrue(success[0]);
 
     pax[3].Start(1, 1500);
     pax[4].Start(1, 2500);
-    assertTrue(waitn(pax, 1, n));
+
+    success[1] = waitn(pax, 1, n);
     cleanup(pax);
+    assertTrue(success[1]);
   }
 
   @Test
@@ -116,11 +125,16 @@ public class PaxosExtraTests {
     pax[5].Start(3, "kkk");
     pax[6].Start(3, "ppp");
     pax[5].Start(4, "jjj");
-    assertTrue(waitn(pax, 0, n));
-    assertTrue(waitn(pax, 1, n));
-    assertTrue(waitn(pax, 2, n));
-    assertTrue(waitn(pax, 3, n));
-    assertTrue(waitn(pax, 4, n));
+
+    boolean[] success = new boolean[5];
+    for (int i=0; i<success.length; i++)
+      success[i] = waitn(pax, i, n);
+    cleanup(pax);
+    for (int i=0; i<success.length; i++)
+    {
+      System.out.println ("test4, i=" + i);
+      assertTrue(success[i]);
+    }
   }
 
     @Test

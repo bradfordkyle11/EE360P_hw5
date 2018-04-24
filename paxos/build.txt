@@ -12,4 +12,4 @@ java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" org.junit.runner.JUnitCo
 # Run specific tests
 java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" TestRunner paxos.PaxosTest#TestDeaf paxos.PaxosTest#TestBasic
 java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" TestRunner paxos.PaxosTest#TestBasic
-java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" TestRunner paxos.PaxosExtraTests#test4
+java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" TestRunner paxos.PaxosExtraTests#test3
