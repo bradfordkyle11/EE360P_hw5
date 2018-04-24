@@ -146,8 +146,9 @@ public class Server implements KVPaxosRMI {
       System.out.println ("\there [2]");
       int requestNum = Integer.parseInt (clientID[1]);
       System.out.println ("\there [3]");
-      System.out.println ("Confirm..." + (requestNum > requestNums.get (ID_base) ? "true" : "false"));
-      if (requestNum > requestNums.get (ID_base))
+      System.out.println ("Confirm..." + (requestNums.contains (ID_base) ? "true" : "false"));
+      System.out.println ("Confirm..." + (requestNums.contains (ID_base) && requestNum > requestNums.get (ID_base) ? "true" : "false"));
+      if (requestNums.contains (ID_base) && requestNum > requestNums.get (ID_base))
       {
         System.out.println ("\there [4]");
         requestNums.put (ID_base, requestNum);
