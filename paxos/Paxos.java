@@ -144,7 +144,7 @@ public class Paxos implements PaxosRMI, Runnable{
   * is reached.
   */
   public void Start(int seq, Object value){
-    // System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
+    System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
     seqs.add(seq);
     instances.put (seq, new AgreementInstance (value));
     pool.execute(new Thread(this));
@@ -247,7 +247,7 @@ public class Paxos implements PaxosRMI, Runnable{
     // }
 
 
-    // System.out.println("okays received: " + okays);
+    System.out.println("okays received: " + okays);
 
     // System.out.println("getMajority returned");
     // (If majority found)
@@ -269,7 +269,7 @@ public class Paxos implements PaxosRMI, Runnable{
 
       // Prepare proposal.
       Request proposal = new Request (seq, reqID);
-      // System.out.println("Seq: " + seq + " Paxos " + me + " prepare.");
+      System.out.println("Seq: " + seq + " Paxos " + me + " prepare.");
 
       // Track proposals sent in these arrays.
       Caller callers[] = new Caller[peers.length];
@@ -298,7 +298,7 @@ public class Paxos implements PaxosRMI, Runnable{
         forgetOld();
       }
 
-      // System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
+      System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
       // Send Accept requests.
       Request accept = new Request (seq, context.reqID, context.v);
       if (!getMajority ("Accept", accept, callers, calls, context))
@@ -307,7 +307,7 @@ public class Paxos implements PaxosRMI, Runnable{
       // Send decide messages.
       Request decide = new Request (seq, context.v, me, dones[me]);
 
-      // System.out.println("Seq: " + seq + " Paxos " + me + " decide " + context.v.toString());
+      System.out.println("Seq: " + seq + " Paxos " + me + " decide " + context.v.toString());
       getMajority("Decide", decide, callers, calls, context);
     }
     // System.out.println("< Thread " + Thread.currentThread().getId() + " done.");
