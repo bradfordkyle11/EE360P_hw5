@@ -247,7 +247,7 @@ public class Paxos implements PaxosRMI, Runnable{
     // }
 
 
-    // System.out.println("okays received: " + okays);
+    // System.out.println("Seq: " + request.seq + " Paxos " + me + " okays received: " + okays);
 
     // System.out.println("getMajority returned");
     // (If majority found)
@@ -300,7 +300,7 @@ public class Paxos implements PaxosRMI, Runnable{
 
       // System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
       // Send Accept requests.
-      Request accept = new Request (seq, context.reqID, context.v);
+      Request accept = new Request (seq, reqID, context.v);
       if (!getMajority ("Accept", accept, callers, calls, context))
         continue;
 
