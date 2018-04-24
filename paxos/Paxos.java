@@ -144,19 +144,19 @@ public class Paxos implements PaxosRMI, Runnable{
   * is reached.
   */
   public void Start(int seq, Object value){
-    System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
+    // System.out.println("Paxos " + me + " starting seq " + seq + " with value " + value);
     seqs.add(seq);
     instances.put (seq, new AgreementInstance (value));
     pool.execute(new Thread(this));
   }
-  
+
   class Caller implements Runnable
   {
     String type;
     Request r;
     int serverID;
     Response retVal = null;
-    
+
     Caller (String type, Request r, int serverID)
     {
       this.type = type;
@@ -178,11 +178,11 @@ public class Paxos implements PaxosRMI, Runnable{
       }
       else
         retVal = Call (type, r, serverID);
-      
+
       // System.out.println("< Thread " + Thread.currentThread().getId() + " done.");
     }
   }
-  
+
   boolean getMajority (String type, Request request, Caller[] callers, Thread[] calls, AgreementInstance context)
   {
     // System.out.println("getMajority called");
@@ -204,7 +204,7 @@ public class Paxos implements PaxosRMI, Runnable{
     //   calls[i] = new Thread (callers[i]);
     //   calls[i].start ();
     // }
-    
+
     // Receive request responses, counting okays.
     int okays = 0;
 
@@ -247,67 +247,67 @@ public class Paxos implements PaxosRMI, Runnable{
     // }
 
 
-    System.out.println("okays received: " + okays);
-    
+    // System.out.println("okays received: " + okays);
+
     // System.out.println("getMajority returned");
     // (If majority found)
     return (okays > peers.length / 2);
   }
-  
+
   @Override
   public void run()
   {
     // System.out.println("> Thread " + Thread.currentThread().getId() + " running.");
     int seq = seqs.pollFirst();
     AgreementInstance context = instances.get (seq);
-    
+
     while (!context.decided && !isDead())
     {
       // Get next logical reqID value.
       int reqID = (context.reqID / peers.length + 1) * peers.length + me;
       // context.reqID = (context.reqID / peers.length + 1) * peers.length + me;
-      
+
       // Prepare proposal.
       Request proposal = new Request (seq, reqID);
-      System.out.println("Seq: " + seq + " Paxos " + me + " prepare.");
-      
+      // System.out.println("Seq: " + seq + " Paxos " + me + " prepare.");
+
       // Track proposals sent in these arrays.
       Caller callers[] = new Caller[peers.length];
       Thread calls[] = new Thread[peers.length];
-      
+
       // Continue next round if no majority acceptance.
       if (!getMajority ("Prepare", proposal, callers, calls, context))
        continue;
-      
+
       // Match the value of any old accepted proposals.
       int maxAcceptReqID = -1;
       for (Caller caller : callers)
       {
         if (caller.retVal == null || !caller.retVal.accepted)
           continue;
-        
+
         // Match just the most recent of previously accepted proposals.
         if (caller.retVal.lastAcceptReqID > maxAcceptReqID)
         {
           context.v = caller.retVal.lastAcceptV;
           maxAcceptReqID = caller.retVal.lastAcceptReqID;
         }
-        
+
         // Update dones[] through piggy-backed data.
         dones[caller.retVal.me] = caller.retVal.done;
         forgetOld();
       }
-      
-      System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
+
+      // System.out.println("Seq: " + seq + " Paxos " + me + " accept " + context.v.toString());
       // Send Accept requests.
       Request accept = new Request (seq, context.reqID, context.v);
       if (!getMajority ("Accept", accept, callers, calls, context))
         continue;
-      
+
       // Send decide messages.
       Request decide = new Request (seq, context.v, me, dones[me]);
-      
-      System.out.println("Seq: " + seq + " Paxos " + me + " decide " + context.v.toString());
+
+      // System.out.println("Seq: " + seq + " Paxos " + me + " decide " + context.v.toString());
       getMajority("Decide", decide, callers, calls, context);
     }
     // System.out.println("< Thread " + Thread.currentThread().getId() + " done.");
@@ -315,7 +315,7 @@ public class Paxos implements PaxosRMI, Runnable{
     if (isDead())
       pool.shutdownNow();
   }
-  
+
   // RMI handler
   public Response Prepare(Request req)
   {
@@ -326,7 +326,7 @@ public class Paxos implements PaxosRMI, Runnable{
       instances.put(req.seq, context);
     }
     boolean accepted = (req.reqID > context.reqID);
-    
+
     if (accepted)
       context.reqID = req.reqID;
 

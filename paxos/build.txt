@@ -2,8 +2,10 @@
 
 # Build
 javac.exe -cp "*" -d bin paxos/*.java
+javac.exe -cp "*;." -d bin kvpaxos/*.java
 
 # Run all
+java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" org.junit.runner.JUnitCore kvpaxos.KVPaxosTest
 java.exe -cp "hamcrest-core-1.3.jar;junit-4.12.jar;bin" org.junit.runner.JUnitCore paxos.PaxosTest
 
 # Run specific tests

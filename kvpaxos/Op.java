@@ -17,4 +17,12 @@ public class Op implements Serializable{
         this.key = key;
         this.value = value;
     }
+
+    public String toString ()
+    {
+      if (type.equals ("Put"))
+        return "(" + clientID + ", " + Integer.toString (value) + ")";
+      else
+        return "(" + clientID + ",)";
+    }
 }

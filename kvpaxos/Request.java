@@ -7,13 +7,13 @@ import java.io.Serializable;
  * Hint: Easier to make each variable public
  */
 public class Request implements Serializable {
-    static final long serialVersionUID=11L;
-    Op op;
+  static final long serialVersionUID=11L;
+  Op op;
 
-    public Request (Op op)
-    {
-        this.op = op;
-    }
+  public Request (Op op)
+  {
+    this.op = op;
+  }
 
     // Your constructor and methods here
 

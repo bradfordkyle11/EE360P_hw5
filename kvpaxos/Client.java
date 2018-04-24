@@ -55,8 +55,12 @@ public class Client {
 
         int serverID = 0;
         Response result = Call ("Get", req, serverID);
+        int count = 0;
         while (result == null)
         {
+          if (count++ > 1)
+            return null;
+          System.out.println ("Client side result: " + result);
           serverID = nextServerID (serverID);
           result = Call ("Get", req, serverID);
         }
